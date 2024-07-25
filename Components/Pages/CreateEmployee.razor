@@ -1,0 +1,208 @@
+﻿@page "/create-employee"
+@page "/create-employee/{Emid}"
+@rendermode InteractiveServer
+@using CRUD_OPERATION_UI.Models.Entities
+@using CRUD_OPERATION_UI.Services
+@inject EmployeeService EmployeeService
+@inject NavigationManager NavigationManager 
+@inject IJSRuntime JSRuntime
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function allowOnlyLetters(event) {
+        const input = event.target;
+        input.value = input.value.replace(/[^A-Za-z.]/g, '');
+    }
+    function validatePhoneNumber(event) {
+        const input = event.target;
+        const errorElement = document.getElementById('phoneError');
+
+        input.value = input.value.replace(/\D/g, '').slice(0, 10);
+
+        if (input.value.length !== 10) {
+            errorElement.style.display = 'inline'; 
+        } else {
+            errorElement.style.display = 'none'; 
+        }
+    }
+</script>
+
+   <style>
+    .content-hidden {
+        color: transparent;
+        background-color: transparent;
+        border: none;
+        box-shadow: none;
+        outline: none;
+    }
+    #phoneError {
+        color: red;
+        display: none;
+      }
+
+    .form-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+
+        .form-row label, .form-row input {
+            margin-right: 10px;
+        }
+
+        .form-row label {
+            flex: 1;
+        }
+
+        .form-row input {
+            flex: 2;
+        }
+</style>
+@if (Eid == null)
+{
+    <h3>Create Employee</h3>
+    <div class="form-row">
+        <label for="fname">Employee Name:</label>
+        <input type="text" id="fname" @bind="ename" name="fname" oninput="allowOnlyLetters(event)" autocomplete="off">
+        <label for="lname">Designation:</label>
+        <input type="text" id="lname" @bind="des" name="lname" oninput="allowOnlyLetters(event)" autocomplete="off">
+    </div>
+
+    <div class="form-row">
+        <label for="post">Post:</label>
+        <input type="text" id="post" @bind="post" name="post" oninput="allowOnlyLetters(event)" autocomplete="off">
+        <label for="place">Place:</label>
+        <input type="text" id="place" @bind="place" name="place" oninput="allowOnlyLetters(event)" autocomplete="off">
+    </div>
+
+    <div class="form-row">
+        <label for="phone">Phone:</label>
+        <input type="text" id="phone" @bind="phone" name="phone" pattern="\d{10}" title="Phone number must be 10 digits" oninput="validatePhoneNumber(event)" autocomplete="off">
+        <span id="phoneError">Phone number must be exactly 10 digits.</span>
+        <label for="post" class="form-row content-hidden">Post:</label>
+        <input type="text" id="post" @bind="post" name="post" oninput="allowOnlyLetters(event)" class="form-row content-hidden" autocomplete="off">
+    </div>
+    <button class="btn btn-primary" @onclick="Save">Save</button>
+}
+else
+{
+    <h3>Edit Employee</h3>
+
+    <div class="form-row">
+        <label for="fname">Employee Name:</label>
+        <input type="text" id="fname" @bind="ename" name="fname" oninput="allowOnlyLetters(event)" autocomplete="off">
+        <label for="lname">Designation:</label>
+        <input type="text" id="lname" @bind="des" name="lname" oninput="allowOnlyLetters(event)" autocomplete="off">
+    </div>
+
+    <div class="form-row">
+        <label for="post">Post:</label>
+        <input type="text" id="post" @bind="post" name="post" oninput="allowOnlyLetters(event)" autocomplete="off">
+        <label for="place">Place:</label>
+        <input type="text" id="place" @bind="place" name="place" oninput="allowOnlyLetters(event)" autocomplete="off">
+    </div>
+
+    <div class="form-row">
+        <label for="phone">Phone:</label>
+        <input type="text" id="phone" @bind="phone" name="phone" pattern="\d{10}" title="Phone number must be 10 digits" oninput="validatePhoneNumber(event)" autocomplete="off">
+        <span id="phoneError">Phone number must be exactly 10 digits.</span>
+        <label for="post" class="form-row content-hidden">Post:</label>
+        <input type="text" id="post" @bind="post" name="post" oninput="allowOnlyLetters(event)" class="form-row content-hidden">
+    </div>
+    <button class="btn btn-primary" @onclick="Update">Update</button>
+}
+
+
+@code {
+    private Employee employee = new Employee();
+    [Parameter]
+    public string Emid{ set; get; }
+    public int? Eid { set; get; }
+
+    public string ename{ set; get; }
+    public string des { set; get; }
+    public string post { set; get; }
+    public string place { set; get; }
+    public string phone { set; get; }
+
+
+
+    private void HandleInput(ChangeEventArgs e)
+    {
+        string input = e.Value.ToString();
+        ename = new string(input.Where(char.IsLetter).ToArray());
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        Eid = null;
+        if (Emid != null)
+        {
+            Eid =Convert.ToInt32(Emid);
+
+
+            var allEmployees = await EmployeeService.GetEmployeesAsync();
+            employee = allEmployees.FirstOrDefault(e => e.ID == Eid);
+            ename = employee.EmployeeName;
+            des = employee.Designation;
+            post = employee.Post;
+            place = employee.Place;
+            phone = employee.Phone;
+
+
+        }
+
+    }
+
+
+    public async void Save()
+    {
+        if (string.IsNullOrWhiteSpace(ename) || string.IsNullOrWhiteSpace(des) ||
+     string.IsNullOrWhiteSpace(post) || string.IsNullOrWhiteSpace(place) ||
+     string.IsNullOrWhiteSpace(phone))
+        {
+            await JSRuntime.InvokeVoidAsync("Swal.fire", "Error", "Please fill out all fields.", "error");
+            return;
+        }
+
+        var Res = await EmployeeService.AddEmployeeAsync(ename, des, post, place, phone);
+        if (Res == true)
+        {
+           
+            await JSRuntime.InvokeVoidAsync("Swal.fire", "Success", "Employee Data Added successfully!", "success");
+            NavigationManager.NavigateTo($"employees");
+
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("Swal.fire", "Error", "Employee Data Adding Failed.", "error");
+        }
+       
+    }
+    public async void Update()
+    {
+        if (string.IsNullOrWhiteSpace(ename) || string.IsNullOrWhiteSpace(des) ||
+       string.IsNullOrWhiteSpace(post) || string.IsNullOrWhiteSpace(place) ||
+       string.IsNullOrWhiteSpace(phone))
+        {
+            await JSRuntime.InvokeVoidAsync("Swal.fire", "Error", "Please fill out all fields.", "error");
+            return;
+        }
+        else
+        {
+            if (Eid.HasValue)
+            {
+                bool res = await EmployeeService.UpdateEmployeeAsync(ename, des, post, place, phone, Eid.Value);
+                if (res == true)
+                {
+                    await JSRuntime.InvokeVoidAsync("Swal.fire", "Success", "Employee Data Updated successfully!", "success");
+
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("Swal.fire", "Error", "Failed to Data Updation.", "error");
+                }
+
+                NavigationManager.NavigateTo($"employees");
+            }
+        }
+    }
+}

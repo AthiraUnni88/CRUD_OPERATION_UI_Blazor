@@ -1,0 +1,79 @@
+﻿@page "/employees"
+@using CRUD_OPERATION_UI.Models.Entities
+@inject CRUD_OPERATION_UI.Services.EmployeeService EmployeeService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+@inject IJSRuntime JSRuntime
+
+<h3>Employees</h3>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+@if (employees == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Designation</th>
+                <th>Post</th>
+                <th>Place</th>
+                <th>Phone</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var employee in employees)
+            {
+                <tr>
+                    <td>@employee.ID</td>
+                    <td>@employee.EmployeeName</td>
+                    <td>@employee.Designation</td>
+                    <td>@employee.Post</td>
+                    <td>@employee.Place</td>
+                    <td>@employee.Phone</td>
+                    <td>
+                        <button @onclick="@(e=>edit(employee.ID))">Edit</button>
+                        <button @onclick="() => DeleteEmployee(employee.ID)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Employee> employees;
+    public string eid { set; get; }
+    protected override async Task OnInitializedAsync()
+    {
+        employees = await EmployeeService.GetEmployeesAsync();
+    }
+
+    private async Task DeleteEmployee(int id)
+    {
+        var success = await EmployeeService.DeleteEmployeeAsync(id);
+
+        if (success)
+        {
+            await JSRuntime.InvokeVoidAsync("Swal.fire", "Success", "Employee deleted successfully!", "success");
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("Swal.fire", "Error", "Failed to delete employee.", "error");
+        }
+
+        employees = await EmployeeService.GetEmployeesAsync();
+    }
+
+
+    public void edit( int id)
+    {
+        eid = id .ToString();
+        NavigationManager.NavigateTo($"create-employee/{eid}");
+    }
+}
